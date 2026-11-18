@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Медицинская документация — интерактивная викторина</title>
+<style>
+:root{--bg:#eef4ff;--ink:#17233d;--muted:#68758f;--blue:#4169e1;--purple:#7657d5;--green:#16865b;--red:#c94b5b;--card:#fff}
+*{box-sizing:border-box} body{margin:0;font-family:Inter,Segoe UI,Arial,sans-serif;background:radial-gradient(circle at 10% 5%,#dce9ff,transparent 35%),linear-gradient(135deg,#f4f7ff,#edf0fb);color:var(--ink);min-height:100vh;padding:24px}
+.wrap{max-width:900px;margin:auto}.hero{background:linear-gradient(120deg,#345bd4,#7757d7);color:white;border-radius:24px;padding:28px 30px;box-shadow:0 14px 35px #304b9828}
+.kicker{font-size:12px;letter-spacing:2px;text-transform:uppercase;opacity:.8;font-weight:700}.hero h1{font-size:clamp(25px,5vw,38px);margin:10px 0}.hero p{margin:5px 0 0;opacity:.9;line-height:1.5}
+.panel{background:var(--card);border-radius:22px;padding:24px;margin-top:18px;box-shadow:0 10px 30px #233b7412}
+.top{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap;color:var(--muted);font-weight:700;font-size:14px}
+.progress{height:9px;background:#e8edfa;border-radius:20px;overflow:hidden;margin:14px 0 22px}.bar{height:100%;width:0;background:linear-gradient(90deg,#4169e1,#8a63dc);transition:width .3s}
+.question{font-size:22px;line-height:1.4;margin:10px 0 20px;font-weight:750}
+.answers{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.answer{border:2px solid #e5eaf5;background:#fbfcff;border-radius:14px;padding:15px;text-align:left;font-size:16px;color:var(--ink);cursor:pointer;transition:.15s;min-height:60px}
+.answer:hover:not(:disabled){border-color:#8299eb;background:#f3f6ff;transform:translateY(-1px)}
+.answer:disabled{cursor:default}.answer.correct{border-color:#55b78c;background:#eaf8f1}.answer.wrong{border-color:#e58a95;background:#fff0f1}
+.letter{display:inline-grid;place-items:center;width:27px;height:27px;border-radius:9px;background:#e9edfb;color:#405fc2;font-weight:800;margin-right:9px}
+.feedback{margin-top:16px;padding:14px 16px;border-radius:13px;line-height:1.5;display:none}.feedback.show{display:block}.feedback.good{background:#eaf8f1;color:#126747}.feedback.bad{background:#fff0f1;color:#9e3442}
+.controls{display:flex;justify-content:space-between;gap:12px;margin-top:20px;align-items:center;flex-wrap:wrap}
+button.primary{background:linear-gradient(120deg,#4169e1,#7657d5);color:white;border:0;border-radius:12px;padding:13px 22px;font-size:15px;font-weight:750;cursor:pointer;box-shadow:0 6px 15px #526bd333}
+button.secondary{background:#f0f3fb;color:#34456c;border:0;border-radius:12px;padding:12px 16px;font-weight:700;cursor:pointer}
+button:disabled{opacity:.45;cursor:not-allowed}
+.small{font-size:13px;color:var(--muted)}.result{text-align:center}.score{font-size:54px;font-weight:850;color:#4c62cf;margin:8px}
+.review{margin-top:18px;text-align:left}.review details{border:1px solid #e7ebf5;border-radius:12px;padding:12px 14px;margin:9px 0}.review summary{font-weight:700;cursor:pointer}.tag{font-size:12px;color:#fff;background:#6b72c9;padding:4px 8px;border-radius:20px}
+.note{font-size:13px;color:#65718a;line-height:1.55;margin-top:16px}
+@media(max-width:620px){body{padding:12px}.hero,.panel{padding:20px}.answers{grid-template-columns:1fr}.question{font-size:19px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header class="hero">
+ <div class="kicker">ПМ.02 · МДК.02.01</div>
+ <h1>🩺 Медицинская документация</h1>
+ <p>Интерактивная викторина для будущих медицинских сестёр<br>20 вопросов · 4 варианта ответа · звуковая обратная связь</p>
+</header>
+<section class="panel" id="quiz">
+ <div class="top"><span id="counter">Вопрос 1 из 20</span><span id="scorelive">⭐ Баллы: 0</span></div>
+ <div class="progress"><div class="bar" id="bar"></div></div>
+ <div class="question" id="question"></div>
+ <div class="answers" id="answers"></div>
+ <div class="feedback" id="feedback" aria-live="polite"></div>
+ <div class="controls"><button class="secondary" id="sound" type="button">🔊 Звук: включён</button><button class="primary" id="next" disabled>Следующий вопрос →</button></div>
+</section>
+<section class="panel result" id="result" hidden>
+ <div class="kicker">Викторина завершена</div><h2>Отличная работа! 🎉</h2>
+ <div class="score" id="finalscore">0/20</div><p id="remark"></p>
+ <button class="primary" id="restart">Пройти ещё раз ↻</button>
+ <div class="review" id="review"><h3>Правильные ответы и пояснения</h3></div>
+ <p class="note">Важно: некоторые пункты исходного теста сформулированы неоднозначно или содержат устаревшие сведения. В частности, для формы 072/у срок действия не равен универсальному сроку из предложенных вариантов; по инфекционным заболеваниям действуют разные сроки телефонного и письменного сообщения. Используйте актуальные локальные нормативные документы и приказы Минздрава.</p>
+</section>
+</div>
+<script>
+const data = [
+["Какая форма является основной учётной формой амбулаторно-поликлинической документации?",["Ф. №003/у","Ф. №025/у","Ф. №030/у","Ф. №058/у"],1,"Форма №025/у — медицинская карта пациента, получающего помощь в амбулаторных условиях."],
+["Статистический талон (ф. №025-2/у) предназначен для:",["Учёта посещений врача","Регистрации заключительных диагнозов","Учёта работы медсестры","Оформления санаторно-курортного лечения"],1,"В учебной классификации талон используют для статистического учёта заключительных диагнозов."],
+["Карта диспансерного наблюдения (ф. №030/у) заполняется на пациентов с:",["Острыми заболеваниями","Хроническими заболеваниями","Травмами","Инфекциями"],1,"Карта предназначена для учёта диспансерного наблюдения, прежде всего пациентов с хроническими заболеваниями."],
+["Экстренное извещение (ф. №058/у) направляется в Роспотребнадзор в течение:",["2 часов","24 часов","12 часов","6 часов"],2,"В учебных тестах обычно указывают 12 часов для письменного извещения. По действующему порядку отдельно предусмотрено сообщение по телефону/иным каналам в течение 2 часов и письменное извещение в течение 12 часов."],
+["Дневник учёта работы среднего медперсонала имеет форму:",["№025/у","№039/у","№030/у","№072/у"],1,"В традиционной номенклатуре форма №039/у относится к дневнику учёта работы среднего медицинского персонала."],
+["Листок нетрудоспособности при амбулаторном лечении продлевается врачебной комиссией свыше:",["10 дней","15 дней","20 дней","30 дней"],1,"Лечащий врач единолично формирует листок нетрудоспособности на срок до 15 календарных дней включительно; далее требуется решение врачебной комиссии."],
+["Код 01 в листке нетрудоспособности означает:",["Травма","Заболевание","Карантин","Уход за больным"],1,"Код 01 означает заболевание."],
+["Санаторно-курортная карта (ф. №072/у) действует в течение:",["3 месяцев","6 месяцев","12 месяцев","24 месяцев"],-1,"Вопрос составлен некорректно: универсального срока действия 3, 6, 12 или 24 месяца для формы №072/у в таком виде нет. Необходимо сверяться с действующим порядком и требованиями санатория."],
+["Какой код причины нетрудоспособности используется при уходе за больным членом семьи?",["01","03","09","11"],2,"Код 09 — уход за больным членом семьи."],
+["При выявлении особо опасной инфекции экстренное извещение направляется:",["В течение 2 часов","Немедленно","В течение суток","На следующий день"],1,"При подозрении на особо опасную инфекцию требуется незамедлительное информирование по установленному порядку."],
+["Сколько дней может продлевать листок нетрудоспособности единолично лечащий врач?",["До 7 дней","До 10 дней","До 15 дней","До 30 дней"],2,"Лечащий врач единолично формирует листок нетрудоспособности на срок до 15 календарных дней включительно."],
+["Какая форма используется для направления на медико-социальную экспертизу?",["№088/у","№072/у","№030/у","№025/у"],0,"Форма №088/у — направление на медико-социальную экспертизу (в традиционной номенклатуре)."],
+["Талон на приём к врачу имеет форму:",["№025-10/у-97","№025/у","№039/у","№058/у"],0,"В рамках предложенных вариантов ожидаемый ответ — №025-10/у-97; номенклатура талонов менялась, поэтому сверяйте форму с действующими локальными документами."],
+["Сколько лет хранится медицинская карта амбулаторного больного после последнего посещения?",["10 лет","15 лет","25 лет","50 лет"],2,"В учебных материалах часто указывается 25 лет, однако срок хранения зависит от вида документа, носителя и действующей архивной номенклатуры."],
+["В какой системе преимущественно оформляется листок нетрудоспособности с 2022 года?",["Бумажной","Электронной (ЭЛН)","Смешанной","Произвольной"],1,"С 2022 года листки нетрудоспособности преимущественно формируются в электронном виде."],
+["При каком сроке нетрудоспособности обязательно решение врачебной комиссии?",["До 15 дней","Свыше 15 дней","Свыше 30 дней","Свыше 10 дней"],1,"При продолжении нетрудоспособности свыше 15 календарных дней требуется решение врачебной комиссии."],
+["Какие сведения обязательно вносятся в титульный лист карты амбулаторного больного?",["Группа крови","Семейное положение","Место работы","Доход"],2,"Из предложенных вариантов в традиционной форме титульного листа указывались сведения о месте работы. Состав обязательных полей зависит от актуального бланка."],
+["Максимальный срок непрерывной выдачи листка нетрудоспособности составляет:",["6 месяцев","10 месяцев","12 месяцев","24 месяца"],1,"В типовой учебной формулировке для обычных случаев указывают до 10 месяцев; для отдельных случаев, например туберкулёза, предусмотрены специальные сроки."],
+["Группа крови и резус-фактор в карте амбулаторного больного указываются на:",["Листе назначений","Титульном листе","Врачебном заключении","Статистическом талоне"],1,"В традиционном бланке эти сведения указывались на титульном листе карты."],
+["Какая организация получает экстренное извещение об инфекционном заболевании?",["Минздрав","Роспотребнадзор","Страховая компания","Прокуратура"],1,"Экстренное извещение направляется в территориальный орган Роспотребнадзора."]
+];
+let index=0,score=0,answered=false,soundOn=true,chosen=[];
+const $=id=>document.getElementById(id);
+function tone(freq,duration=0.16,type="sine",vol=0.07){if(!soundOn)return;try{const C=window.AudioContext||window.webkitAudioContext;const c=new C();const o=c.createOscillator(),g=c.createGain();o.type=type;o.frequency.value=freq;g.gain.setValueAtTime(vol,c.currentTime);g.gain.exponentialRampToValueAtTime(0.001,c.currentTime+duration);o.connect(g);g.connect(c.destination);o.start();o.stop(c.currentTime+duration);o.onended=()=>c.close()}catch(e){}}
+function render(){answered=false;const q=data[index];$("counter").textContent=`Вопрос ${index+1} из ${data.length}`;$("scorelive").textContent=`⭐ Баллы: ${score}`;$("bar").style.width=`${index/data.length*100}%`;$("question").textContent=q[0];$("answers").innerHTML="";$("feedback").className="feedback";$("feedback").textContent="";$("next").disabled=true;$("next").textContent=index===data.length-1?"Посмотреть результат →":"Следующий вопрос →";q[1].forEach((a,i)=>{const b=document.createElement("button");b.className="answer";b.innerHTML=`<span class="letter">${"АБВГ"[i]}</span>${a}`;b.onclick=()=>select(i);$("answers").appendChild(b)})}
+function select(n){if(answered)return;answered=true;chosen[index]=n;const q=data[index],correct=q[2],buttons=[...$("answers").children];buttons.forEach((b,i)=>{b.disabled=true;if(i===correct)b.classList.add("correct");else if(i===n)b.classList.add("wrong")});const f=$("feedback");f.className="feedback show "+(n===correct?"good":"bad");if(correct<0){f.innerHTML=`⚠️ Вопрос некорректен: среди вариантов нет надёжного правильного ответа.<br>${q[3]}`;tone(330,.22,"triangle")}else if(n===correct){score++;f.innerHTML=`✓ Верно! ${q[3]}`;tone(660,.12);setTimeout(()=>tone(880,.16),100)}else{f.innerHTML=`✕ Не совсем. Правильный ответ: <b>${"АБВГ"[correct]}) ${q[1][correct]}</b>.<br>${q[3]}`;tone(190,.28,"sawtooth")}$("scorelive").textContent=`⭐ Баллы: ${score}`;$("next").disabled=false}
+function finish(){$("quiz").hidden=true;$("result").hidden=false;$("finalscore").textContent=`${score}/${data.length}`;const pct=score/data.length;$("remark").textContent=pct>=.85?"Прекрасный результат! Вы отлично ориентируетесь в документации.":pct>=.6?"Хороший результат! Повторите вопросы, где были ошибки.":"Есть темы для повторения — изучите пояснения и попробуйте ещё раз.";const r=$("review");r.innerHTML="<h3>Правильные ответы и пояснения</h3>";data.forEach((q,i)=>{const d=document.createElement("details"),s=document.createElement("summary");s.textContent=`${i+1}. ${q[2]<0?"Нет корректного варианта":("АБВГ"[q[2]]+") "+q[1][q[2]])}`;const p=document.createElement("p");p.textContent=q[3];d.append(s,p);r.append(d)})}
+$("next").onclick=()=>{if(index<data.length-1){index++;render()}else finish()};$("sound").onclick=()=>{soundOn=!soundOn;$("sound").textContent=soundOn?"🔊 Звук: включён":"🔇 Звук: выключен";if(soundOn)tone(600)};$("restart").onclick=()=>{index=0;score=0;chosen=[];$("result").hidden=true;$("quiz").hidden=false;render()};render();
+</script>
+</body></html>
